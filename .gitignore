@@ -5,3 +5,21 @@
 .env
 .env.*
 !.env.example
+node_modules/
+dist/
+build/
+.gradle/
+test-results/
+playwright-report/
+DESIGN.md
+
+# AI 협업 규칙 (~/config/dontcleanmydesk/ 보관, .sync-map 동기화)
+/.ai-template.env
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/docs/문서_운영.md
+/docs/rules/
+/docs/templates/
+/개발산출물/
+/계획/
