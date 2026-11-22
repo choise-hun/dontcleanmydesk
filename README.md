@@ -1,10 +1,15 @@
-# 어질러진 방
+# 어질러진 방 (dontcleanmydesk)
 
-마구잡이로 저장하고, 어질러진 책상처럼 흩뿌려 보며 영감을 얻는 아이디어 수집 앱. 개발 초안(2026-10-14)을 따라 웹 우선으로 만들었다.
+아이디어(글·사진·음악·영상·링크)를 빠르게 저장하고, 어질러진 책상처럼 펼쳐 보며 영감을 얻는 아이디어 수집 앱.
+
+현재 `app/`과 `server/`에는 개발 초안(2026-10-14) 기반 웹 우선 프로토타입이 구현되어 있으며, [`docs/requirements.md`](docs/requirements.md)에 `Book`·`CollageState` 기반 **아이디어 콜라주 노트 앱**(`P1`~`P8`)으로 재정의한 최신 요구사항이 정리되어 있다.
 
 ```
-app/     Expo(React Native) + Expo Router — 웹·모바일 공용 클라이언트
-server/  Kotlin(Ktor) — 링크 메타데이터, 이미지 프록시, 계정·동기화, 파일 업로드
+app/                Expo(React Native) + Expo Router — 웹·모바일 공용 클라이언트
+server/             Kotlin(Ktor) — 링크 메타데이터, 이미지 프록시, 계정·동기화, 파일 업로드
+docs/               요구사항 정의서(requirements.md) 및 UI 레퍼런스(references/frame.jpeg)
+docker-compose.yml  server(8787) + web(8081) 컨테이너 실행 구성
+.github/workflows/  GitHub Actions CI (app: typecheck·lint·test·export, server: gradle build)
 ```
 
 ## 실행
@@ -18,6 +23,12 @@ cd server
 cd app
 npm install
 npm run web              # http://localhost:8081
+```
+
+Docker Compose로 한 번에 띄울 수도 있다.
+
+```bash
+docker compose up --build
 ```
 
 서버 없이도 앱은 동작한다(로컬 저장, 절차적 썸네일). 서버가 있으면 링크 썸네일·제목과 동기화가 붙는다.
@@ -39,7 +50,7 @@ Windows 라면 `JAVA_OPTS=-Djavax.net.ssl.trustStoreType=Windows-ROOT` 로 OS �
 ## 검사
 
 ```bash
-cd app && npm run typecheck && npm run lint && npm test     # 방 규칙·분류·ID3 단위 테스트
+cd app && npm run typecheck && npm run lint && npm test     # 타입체크·린트·단위 테스트
 cd server && ./gradlew test                                  # 동기화 LWW, 인증, 파일, SSRF 차단, OG 파싱
 ```
 
@@ -51,9 +62,11 @@ cd server && ./gradlew test                                  # 동기화 LWW, �
 - `app/src/thumbs/` — 썸네일 파이프라인(og:image → oEmbed → 영상 프레임 / ID3 커버 → 파형 → 절차적).
 - `app/src/themes/` — 테마 매니페스트. 기본 `오후 햇살`, 변형 `아침`·`밤`.
 - `app/src/store/` — 로컬 우선 저장(웹 IndexedDB, 모바일 expo-sqlite + 파일), `sync/` 는 서버와 LWW 동기화.
+- `server/src/main/kotlin/desk/room/` — Ktor 서버(`Application.kt`, `SyncStore.kt`, `LinkMeta.kt`, `SafeHttp.kt`, `FileStorage.kt`).
+- `docs/requirements.md` — 아이디어 콜라주 노트 앱 요구사항 정의서(`P1`~`P8` 단계별 범위, 용어·데이터·API 계약).
 
-## 아직 안 한 것 (로드맵 7·8단계)
+## 현재 상태 및 다음 단계
 
-- 모바일 앱화: 공유 시트(Swift / Kotlin), 위젯, 모바일 영상 프레임·파형·재생기·흔들기. 모바일 코드 경로는 타입체크만 통과했고 기기에서 돌려 보지 않았다.
-- 생성형 썸네일, 임베딩 기반 "적당히 먼 것" 추천, 다운로드형 테마 팩, 사용자 사진 책상.
-- 계정은 이메일 없이 8자리 연결 코드 방식이다. 코드 만료·재발급과 무차별 대입 제한이 필요하다.
+- **구현 상태:** `app/`·`server/`는 초안(`어질러진 방`: `Bin`/`RoomState`/`/api/*`) 기준 웹 프로토타입 상태다. 모바일 코드 경로는 타입체크만 통과했고 기기에서 돌려 보지 않았다.
+- **리뉴얼 계획:** `docs/requirements.md`에 따라 `WP-1`(콜라주 분위기 프로토타입)부터 단계적으로 재구성할 예정이다.
+- **미구현 확장 항목:** 모바일 공유 시트·위젯·네이티브 미디어, 생성형 썸네일, 임베딩 추천, 테마 팩 스토어, 8자리 연결 코드 만료·재발급·무차별 대입 제한.
