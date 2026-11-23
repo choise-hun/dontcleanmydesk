@@ -1,0 +1,52 @@
+/* WP-1-1 미리보기 디자인 토큰 (DESIGN.md 무책상 A/B 확정: 단색 기본 UI 바탕 #f0eeea + 종이 #faf9f6) */
+:root {
+  --bg: #f0eeea;
+  --surface: #faf9f6;
+  --surface2: #e6e4df;
+  --ink: #1d1d1f;
+  --muted: #5c5a55;
+  --accent: #1d1d1f;
+  --accent-ink: #faf9f6;
+  --point: #c4622d;
+  --good: #2d6a4f;
+  --bad: #9b2226;
+  --line: #d8d5ce;
+  --scrim: rgba(29, 29, 31, 0.42);
+  --radius-pill: 9999px;
+  --radius-card: 0px;
+  --font-body: system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+:root[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --surface: #262629;
+  --surface2: #323236;
+  --ink: #f4f3ef;
+  --muted: #b5b3ad;
+  --accent: #f4f3ef;
+  --accent-ink: #1c1c1e;
+  --point: #e07a45;
+  --good: #74c69d;
+  --bad: #f28482;
+  --line: #45454a;
+  --scrim: rgba(10, 10, 12, 0.72);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1c1e;
+    --surface: #262629;
+    --surface2: #323236;
+    --ink: #f4f3ef;
+    --muted: #b5b3ad;
+    --accent: #f4f3ef;
+    --accent-ink: #1c1c1e;
+    --point: #e07a45;
+    --good: #74c69d;
+    --bad: #f28482;
+    --line: #45454a;
+    --scrim: rgba(10, 10, 12, 0.72);
+  }
+}
