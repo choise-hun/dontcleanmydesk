@@ -1,8 +1,8 @@
 // WP-1-1 콜라주 미리보기 순수 배치·밀도·좌표 변환 모듈 (H-ARCH-09: 시드 주입 순수 함수 + collageConfig 일원화)
-import { clamp, seededRng } from '@/core/random';
-import type { ItemType } from '@/core/types';
-import { cardDims } from '@/desk/geometry';
-import type { SkinKind } from '@/themes/types';
+import { clamp, seededRng } from '../../core/random';
+import type { ItemType } from '../../core/types';
+import { cardDims } from '../geometry';
+import type { SkinKind } from '../../themes/types';
 
 export interface CanvasSize {
   width: number;
