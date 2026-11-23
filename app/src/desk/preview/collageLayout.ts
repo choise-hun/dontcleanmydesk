@@ -340,6 +340,7 @@ function buildSafeCandidate(
   spread: Spread,
   pieces: readonly PreviewPiece[],
   edgeCount: number,
+  scaleFactor = 1,
 ): { poses: PiecePose[]; edgeIndices: Set<number> } {
   const aspectY = spread.height / spread.width;
   const interiorCount = pieces.length - edgeCount;
@@ -354,7 +355,7 @@ function buildSafeCandidate(
     const piece = pieces[i];
     const angleSign = i % 2 === 0 ? 1 : -1;
     const rotation = angleSign * ((4 + (i % 4) * 2) * Math.PI) / 180;
-    const scale = 0.88 + (i % 3) * 0.06;
+    const scale = (0.88 + (i % 3) * 0.06) * scaleFactor;
 
     let x: number;
     let y: number;
@@ -418,9 +419,13 @@ export function placePieces(
     if (check.ok) return Object.freeze(poses);
   }
 
-  const safe = buildSafeCandidate(spread, pieces, edgeCount);
-  const safeCheck = evaluateCandidate(size, spread, pieces, safe.poses, safe.edgeIndices);
-  if (safeCheck.ok) return Object.freeze(safe.poses);
+  let lastOcclusion = 0;
+  for (const scaleFactor of [1, 0.8, 0.65, 0.5, 0.35]) {
+    const safe = buildSafeCandidate(spread, pieces, edgeCount, scaleFactor);
+    const safeCheck = evaluateCandidate(size, spread, pieces, safe.poses, safe.edgeIndices);
+    lastOcclusion = safeCheck.maxOcclusion;
+    if (safeCheck.ok) return Object.freeze(safe.poses);
+  }
 
-  throw new Error(`안전 배치 검증 실패 (${size.width}x${size.height}, maxOcclusion=${safeCheck.maxOcclusion.toFixed(2)})`);
+  throw new Error(`안전 배치 검증 실패 (${size.width}x${size.height}, maxOcclusion=${lastOcclusion.toFixed(2)})`);
 }
