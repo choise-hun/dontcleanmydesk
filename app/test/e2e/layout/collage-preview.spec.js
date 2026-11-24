@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { gzipSync } = require('node:zlib');
 const { test, expect } = require('@playwright/test');
 const { checkLayout, WIDTHS } = require('../support/layout-check');
 
@@ -219,7 +220,7 @@ test.describe('WP-1-1 /collage-preview 레이아웃·상태·변형', () => {
   }
 
   test('W1-03 WASM 로딩 보류 → 해제 정상 전환', async ({ browser }) => {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
     const page = await context.newPage();
     let releaseWasm;
     const wasmGate = new Promise((resolve) => {
@@ -246,7 +247,7 @@ test.describe('WP-1-1 /collage-preview 레이아웃·상태·변형', () => {
   });
 
   test('W1-03 별도 컨텍스트에서 WASM 실패 주입 시 실패 안내와 DOM 순서 목록 표시', async ({ browser }) => {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
     const page = await context.newPage();
 
     await page.route('**/canvaskit.wasm*', async (route) => {
@@ -264,7 +265,7 @@ test.describe('WP-1-1 /collage-preview 레이아웃·상태·변형', () => {
   });
 
   test('W1-03 WASM 보류 중 홈 이탈 시 늦은 응답이 떠난 화면을 커밋하지 않음', async ({ browser }) => {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
     const page = await context.newPage();
     const pageErrors = [];
     page.on('pageerror', (err) => pageErrors.push(String(err)));
@@ -274,6 +275,7 @@ test.describe('WP-1-1 /collage-preview 레이아웃·상태·변형', () => {
       releaseWasm = resolve;
     });
 
+    const requestedWasm = page.waitForRequest((request) => new URL(request.url()).pathname === '/canvaskit.wasm');
     await page.route('**/canvaskit.wasm*', async (route) => {
       await wasmGate;
       await route.continue();
@@ -281,18 +283,23 @@ test.describe('WP-1-1 /collage-preview 레이아웃·상태·변형', () => {
 
     await page.goto(PREVIEW_URL, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('main#collage-preview [role="status"]')).toBeVisible({ timeout: 15000 });
+    await requestedWasm;
 
     await page.locator('main#collage-preview a', { hasText: '홈으로' }).click();
     await expect(page.locator('main#collage-preview')).toHaveCount(0, { timeout: 10000 });
 
+    const wasmResponse = page.waitForResponse((response) => new URL(response.url()).pathname === '/canvaskit.wasm');
     releaseWasm();
+    const response = await wasmResponse;
+    expect(response.ok()).toBe(true);
+    expect(await response.finished()).toBeNull();
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await expect(page.locator('main#collage-preview')).toHaveCount(0);
     expect(pageErrors).toEqual([]);
     await context.close();
   });
 
-  test('W1-04 홈 초기 JS의 Matter 및 WASM 분리와 4G 진입 계측', async ({ browser }) => {
+  test('W1-04 홈 초기 JS의 Skia·Matter·WASM 분리와 4G 진입 계측', async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     const homeRequests = [];
@@ -322,6 +329,9 @@ test.describe('WP-1-1 /collage-preview 레이아웃·상태·변형', () => {
     expect(scripts.length).toBeGreaterThan(0);
     expect(scripts.filter(({ code }) => /matter-js/.test(code))).toEqual([]);
     const skia = scripts.filter(({ code }) => /MakeWebGLCanvasSurface/.test(code)).map(({ name }) => name);
+    expect.soft(skia, '홈 초기 스크립트에서 Skia가 발견됨').toEqual([]);
+    const homeGzipBytes = scripts.reduce((total, { code }) => total + gzipSync(code).length, 0);
+    expect.soft(homeGzipBytes, '홈 초기 JS gzip 한도(NFR-02)').toBeLessThanOrEqual(500_000);
 
     phase = 'preview';
     await page.goto(PREVIEW_URL, { waitUntil: 'load' });
@@ -347,7 +357,8 @@ test.describe('WP-1-1 /collage-preview 레이아웃·상태·변형', () => {
     const warm = await measurePage.evaluate(() => performance.now());
     expect(cold).toBeGreaterThan(0);
     expect(warm).toBeGreaterThan(0);
-    console.log(JSON.stringify({ home: scripts.map(({ name }) => name), skia, preview: previewRequests
+    expect.soft(warm, '캐시 재진입 4G 한도(NFR-03)').toBeLessThanOrEqual(1000);
+    console.log(JSON.stringify({ home: scripts.map(({ name }) => name), homeGzipBytes, skia, preview: previewRequests
       .filter((url) => /CollageScene-|canvaskit\.wasm/.test(url)).map((url) => new URL(url).pathname),
     coldMs: Math.round(cold), warmMs: Math.round(warm), coldGoalMet: cold <= 3000, warmGoalMet: warm <= 1000 }));
     await measured.close();

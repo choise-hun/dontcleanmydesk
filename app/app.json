@@ -28,6 +28,9 @@
       "backgroundColor": "#e9c99b"
     },
     "scheme": "messyroom",
+    "experiments": {
+      "chunking": { "mode": "granular" }
+    },
     "plugins": [
       "expo-router",
       "expo-sqlite"
