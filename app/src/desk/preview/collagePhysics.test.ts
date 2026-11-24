@@ -1,4 +1,4 @@
-import { Body, Composite, Engine } from 'matter-js';
+import { Body, Composite, Detector, Engine, type Pair } from 'matter-js';
 import { describe, expect, it, vi } from 'vitest';
 import { createCollagePhysics } from './collagePhysics';
 import { collageConfig, getSpread, toCanvasPoint, toSpreadPoint, type PreviewPiece } from './collageLayout';
@@ -15,13 +15,27 @@ function setup(points: { x: number; y: number; rotation?: number }[]) {
   const physics = createCollagePhysics(size, spread, pieces, points.map((point, z) => ({
     id: String(z), ...toSpreadPoint(spread, point), rotation: point.rotation ?? 0, scale: 1, z,
   })));
-  const engine = create.mock.results[0].value;
+  const engine: Engine = create.mock.results[0].value;
   create.mockRestore();
   const bodies = Composite.allBodies(engine.world).filter((body) => !body.isStatic);
   return { physics, bodies, engine, center: (i: number) => toCanvasPoint(spread, physics.snapshot()[i]) };
 }
 
 describe('W1-05 collage physics', () => {
+  it('keeps overlapping targets out of the collision solver while a driver is active', () => {
+    const { physics, bodies: [driver, first, second], engine } = setup([
+      { x: 150, y: 300 }, { x: 650, y: 300 }, { x: 655, y: 300 },
+    ]);
+    physics.begin({ x: 150, y: 300 }, 0);
+    physics.move({ x: 170, y: 300 }, 16);
+    expect(physics.tick(dt)).toBe(true);
+    expect(Detector.canCollide(driver.collisionFilter, first.collisionFilter)).toBe(true);
+    const pairs: Pair[] = engine.pairs.list;
+    expect(pairs.some(({ isActive, bodyA, bodyB }) => isActive &&
+      ((bodyA === first && bodyB === second) || (bodyA === second && bodyB === first)))).toBe(false);
+    physics.dispose();
+  });
+
   it('keeps exact idle overlap, selects the top rotated card and drives targets without chaining', () => {
     const { physics, bodies, center } = setup([
       { x: 130, y: 310, rotation: -0.17 },

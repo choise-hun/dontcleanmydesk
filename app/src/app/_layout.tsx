@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -9,6 +9,7 @@ import { store } from '@/store/store';
 import { startAutoSync } from '@/sync/sync';
 
 export default function RootLayout() {
+  const pathname = usePathname();
   const [ready, setReady] = useState(store.ready);
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export default function RootLayout() {
     return () => stop?.();
   }, []);
 
-  if (!ready)
+  if (!ready && pathname !== '/collage-preview')
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e9c99b' }}>
         <ActivityIndicator color="#7a4a26" />

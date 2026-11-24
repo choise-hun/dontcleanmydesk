@@ -27,6 +27,17 @@ const styles = rawStyles as Record<string, string>;
 type SceneComponent = ComponentType<CollageSceneProps>;
 type LoadState = 'loading' | 'ready' | 'error';
 
+let skiaBootPromise: Promise<void> | null = null;
+function ensureSkiaBoot(): Promise<void> {
+  skiaBootPromise ??= LoadSkiaWeb({ locateFile: (file: string) => `/${file}` });
+  return skiaBootPromise;
+}
+
+// 라우트 청크 평가 시점에 CanvasKit WASM 로드를 즉시 시작해 React 마운트·effect 대기를 제거한다(DEF-004).
+if (typeof window !== 'undefined' && window.location?.pathname === '/collage-preview') {
+  ensureSkiaBoot().catch(() => {});
+}
+
 function parseFixture(raw: string | string[] | undefined): FixtureMode {
   const v = Array.isArray(raw) ? raw[0] : raw;
   if (v === 'empty' || v === 'performance') return v;
@@ -109,8 +120,7 @@ export default function CollagePreviewScreen() {
     let alive = true;
     const myGen = ++genRef.current;
 
-    Promise.resolve()
-      .then(() => LoadSkiaWeb({ locateFile: (file: string) => `/${file}` }))
+    ensureSkiaBoot()
       .then(() => import('@/desk/preview/CollageScene'))
       .then((mod) => {
         if (!alive || genRef.current !== myGen) return;
