@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="명세" content="WP-2_구현명세.md">
+<title>dontcleanmydesk · WP-2 화면 시안</title>
+<style>
+:root {color-scheme:light;--bg:#f0eeea;--paper:#faf9f6;--raised:#e6e4df;--ink:#1d1d1f;--muted:#5c5a55;--line:#d8d5ce;--point:#c4622d;--bad:#9b2226;--scrim:#1d1d1f6b;--pill:9999px;--corner:16px;--thumb:8px;--shadow:#5a3a2233;--art1:#c8a88b;--art2:#aab1a0;--art3:#c5ac95;--art4:#ac99a0;--art5:#a9b8bd;--art6:#cebb87;--art7:#c5a29a;--art8:#b2a9a0}
+:root[data-theme=dark] {color-scheme:dark;--bg:#1c1c1e;--paper:#262629;--raised:#323236;--ink:#f4f3ef;--muted:#b5b3ad;--line:#45454a;--point:#e07a45;--bad:#f28482;--scrim:#0a0a0cb8;--shadow:#5a3a226b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Malgun Gothic",sans-serif}
+main,.page-head{width:min(100%,1440px);margin:auto;padding:0 24px}
+.page-head{padding-top:36px;padding-bottom:24px;border-bottom:1px solid var(--line)}
+h1,h2,h3,p{margin:0} h1{font-size:clamp(24px,5vw,38px);line-height:1.18} h2{font-size:24px} h3{font-size:18px}
+p+p{margin-top:8px} .muted,small{color:var(--muted)} small{font-size:13px}
+button,input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;min-height:44px;min-width:44px}
+button,select{cursor:pointer}
+button,select,input,textarea{border:1px solid var(--line);background:var(--paper);padding:8px 12px}
+button,input,select{border-radius:var(--pill)} textarea{border-radius:0;resize:vertical;width:100%}
+button:hover{border-color:var(--ink)} button:disabled{opacity:.6;cursor:default}
+:focus-visible{outline:2px solid var(--point);outline-offset:2px}
+a{color:inherit} a[href]{display:inline-flex;align-items:center;min-height:44px}
+nav,.controls,.row,.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+nav{margin-top:12px;column-gap:16px}
+section{margin:32px 0} section>p{margin:8px 0 12px}
+.controls{margin:8px 0 12px}
+.cands{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.cand{border:1px solid var(--line);background:var(--paper);min-width:0;padding:12px}
+.cand.recommended{border-color:var(--point)} .cand>h3{margin-bottom:8px}
+.cand>p{margin:8px 0 0;font-size:14px}
+.badge{font-size:13px;border-bottom:2px solid var(--point);margin-left:6px}
+.frame{max-width:480px;margin:auto;min-height:522px;background:var(--bg);border:1px solid var(--line);position:relative;isolation:isolate;color:var(--ink);min-width:0}
+.bar{display:flex;align-items:center;gap:4px;padding:12px;min-height:64px}
+.bar strong,.bar h3{margin-right:auto;overflow-wrap:anywhere}
+.bar button{padding:4px 8px;background:transparent;border-color:transparent}
+.bar .book-name{margin-right:auto;text-align:left;line-height:1.2;font-weight:700}
+.compact{padding:4px 10px;font-size:14px}
+.primary,.is-selected{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.shelf,.tabs,.covers{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding:4px 12px 12px}
+.book-tile{flex:none;width:108px;position:relative}
+.book-cover,.swatch{background-color:var(--art1);background-image:linear-gradient(155deg,transparent 40%,var(--art2) 40% 62%,transparent 62%),linear-gradient(27deg,var(--art3) 27%,transparent 27%);color:var(--ink)}
+.book-cover{width:100%;aspect-ratio:3/4;display:flex;align-items:flex-end;justify-content:flex-end;padding:12px 6px;border-radius:0;box-shadow:0 5px 7px var(--shadow)}
+.book-cover b{display:block;writing-mode:vertical-rl;background:var(--paper);padding:6px 3px;font-size:13px}
+.art2{--art1:var(--art4);--art2:var(--art5);--art3:var(--art8)}
+.art3{--art1:var(--art6);--art2:var(--art7);--art3:var(--raised)}
+.art4{--art1:var(--art8);--art2:var(--art6);--art3:var(--art7)}
+.art5{--art1:var(--art5);--art2:var(--art6);--art3:var(--art4)}
+.art6{--art1:var(--art7);--art2:var(--art4);--art3:var(--art5)}
+.art7{--art1:var(--art4);--art2:var(--art6);--art3:var(--art5)}
+.art8{--art1:var(--art8);--art2:var(--art7);--art3:var(--art6)}
+.edit-cover{position:absolute;left:2px;top:2px;padding:2px;background:var(--paper);font-size:13px}
+.memo{background:var(--paper);padding:12px 12px 16px;border-radius:var(--corner) var(--corner) 0 0;min-height:288px;border-top:1px solid var(--line)}
+.square .memo,.square .thumb{border-radius:0}
+.quick{display:flex;gap:4px;align-items:center}
+.quick input{width:100%;min-width:0;padding:8px;background:var(--bg);font-size:16px}
+.quick button{padding:4px}
+.tabs{padding:8px 0 4px}
+.tabs button{white-space:nowrap;padding:6px 10px;border-color:transparent}
+.tabs [aria-pressed=true]{font-weight:750;text-decoration:underline;text-decoration-color:var(--point);text-underline-offset:8px;text-decoration-thickness:2px}
+.note-list{display:grid}
+.note{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:start;text-align:left;padding:8px 0;border:0;border-top:1px solid var(--line);border-radius:0;width:100%}
+.note b,.note small{display:block;overflow-wrap:anywhere}
+.date-chip{background:var(--bg);padding:2px 4px;font-size:12px}
+.thumb{width:44px;height:44px;display:grid;place-items:center;background:var(--raised);border-radius:var(--thumb);font-family:Georgia,serif}
+.paper{background:var(--paper);margin:0 12px;padding:12px;border:1px solid var(--line);min-height:338px}
+.date-line{display:flex;justify-content:space-between;gap:4px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.paper-title{display:block;width:100%;padding-left:0;border:0;background:transparent;font-size:18px;font-weight:700;margin-top:8px}
+.paper textarea{border-color:transparent;background:transparent;padding:6px 0;font-size:16px}
+.media{display:grid;gap:4px;background:var(--bg);border:1px solid var(--line);padding:8px;margin:8px 0}
+.media b,.media small{overflow-wrap:anywhere}
+.media button{text-align:left;border-radius:0}
+.toolbar{padding:8px 12px;gap:4px}
+.toolbar button{font-size:14px;padding:6px 8px}
+.toolbar.split{justify-content:space-between}
+.tray{padding:0 12px 12px}
+.message{padding:10px 0;font-size:14px}.message:empty{display:none}
+.error{color:var(--bad)} .pad{padding:12px}
+dialog{position:absolute;inset:auto 0 0;margin:0 auto;width:100%;max-width:480px;max-height:100%;overflow:auto;border:1px solid var(--line);color:var(--ink);background:var(--paper);padding:12px}
+dialog::backdrop{background:var(--scrim)}
+.frame[data-mode=C][data-kind=sheet]{min-height:600px}
+.frame[data-staged=true] .overlay{background:var(--scrim);position:absolute;inset:0;pointer-events:none}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sheet label:not(.upload){display:grid;gap:4px;margin:8px 0;font-size:14px}
+.sheet label input{width:100%;padding:8px 12px;background:var(--bg)}
+.covers{padding:4px 2px 8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));justify-items:start;gap:6px}
+.swatch{aspect-ratio:3/4;width:min(100%,48px);min-width:0;border-radius:0;padding:0;border:1px solid var(--line);display:grid;place-items:center}
+.swatch span{background:var(--paper);padding:1px 4px;font-size:13px}
+.swatch[aria-pressed=true]{outline:2px solid var(--point);outline-offset:-2px}
+.covers.rail{display:flex}.rail .swatch{flex:0 0 48px}
+.preview-cover{width:90px;margin:4px auto 8px;aspect-ratio:3/4;background-size:cover;background-position:center}
+.sheet-actions{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:8px}
+.sheet-actions .primary{margin-left:auto}
+.wide{overflow-x:auto} table{border-collapse:collapse;width:100%;min-width:700px;background:var(--paper);font-size:14px}
+td,th{text-align:left;vertical-align:top;padding:10px;border:1px solid var(--line)}
+.state button[aria-pressed=true]{border-color:var(--point);font-weight:700}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:16px}
+.demo-grid>div{min-width:0} .demo-grid .frame{width:100%}
+@media(max-width:980px){.cands{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){main,.page-head{padding-left:12px;padding-right:12px}.cands,.demo-grid{grid-template-columns:1fr}.cand{padding:8px}}
+</style>
+</head>
+<body>
+<header class="page-head">
+<small>dontcleanmydesk / 웹 수집 및 노트</small>
+<h1>WP-2 화면 시안</h1>
+<nav aria-label="시안 탐색"><a href="#el-home">S-01 홈</a><a href="#el-editor">S-02 에디터</a><a href="#el-sheet">S-05 노트 시트</a><a href="#fullflow">이어서 사용</a><a href="#except">상태</a><a href="#spec">명세</a><button type="button" id="theme" aria-pressed="false" class="compact">다크 모드</button></nav>
+<p class="muted">각 후보의 버튼을 눌러 다음 화면을 확인하세요. 입력과 파일 선택은 시안 안에서만 적용됩니다.</p>
+</header>
+<main>
+<section class="element" id="el-home" data-chosen="">
+<h2>S-01 · 노트 표지를 탭하면</h2>
+<p>책장 아래는 최신 메모 목록입니다. 태그를 눌러도 위쪽 표지와 순서는 유지됩니다.</p>
+<div class="controls"></div><div class="cands"></div>
+</section>
+<section class="element" id="el-editor" data-chosen="">
+<h2>S-02 · 종이 아래 도구 배치</h2>
+<p>작성·편집 화면을 공유합니다. 제목과 본문은 자동 저장되고, 페이지 번호와 그리기 펜은 생략합니다.</p>
+<div class="controls"></div><div class="cands"></div>
+</section>
+<section class="element" id="el-sheet" data-chosen="">
+<h2>S-05 · 표지를 고르는 방식</h2>
+<p>이름만 입력해도 노트를 만들 수 있습니다. 시기 설명과 표지는 선택 항목입니다.</p>
+<div class="controls"></div><div class="cands"></div>
+</section>
+<section id="fullflow">
+<h2>추천안 이어서 사용</h2>
+<p>새 노트 만들기 → 표지 탭 → 노트 안에서 메모 저장. 메모를 누르면 S-02가 열립니다.</p>
+<div class="demo-grid"><div id="flow"></div><div><button type="button" id="reset-flow">처음부터 다시</button><p class="message muted">전체 흐름을 보여 주기 위해 WP-2-2 첨부 및 WP-2-3 편집·태그까지 연결했습니다. WP-2-1의 메모 저장은 텍스트 빠른 작성입니다.</p></div></div>
+</section>
+<section id="except">
+<h2>빈 화면과 실패 상태</h2>
+<div class="controls state" aria-label="시안 상태"></div><div id="state-frame"></div>
+</section>
+<section id="spec">
+<h2>명세</h2>
+<div class="wide"><table>
+<thead><tr><th>항목</th><th>추천 / 채택</th><th>차선 / 나머지</th><th>값 · 사용자 흐름</th><th>상태</th></tr></thead>
+<tbody>
+<tr data-el="el-home"><th>S-01 표지 탭</th><td>A 노트별 목록. 허브에서 선택 노트의 내용과 작성 위치가 분명함</td><td>B 홈 내 필터 / C 읽기 전용 미리보기</td><td>최대 480px. 표지 108×144px. 상단 책장 → 표지 → 선택 노트의 목록 → 작성. WP-4에서 실제 S-03과 좌표 드롭 연결</td><td>결정 전</td></tr>
+<tr data-el="el-editor"><th>S-02 하단 도구</th><td>A 좌우 분리. 첨부와 편집 도구의 위치가 일정함</td><td>B 더보기 메뉴 / C 문서 안 서식</td><td>최대 480px. 도구 ≥44px. 첨부·링크 왼쪽, 서식·태그·이동 오른쪽. 500ms 자동 저장</td><td>결정 전</td></tr>
+<tr data-el="el-sheet"><th>S-05 표지 선택</th><td>A 4×2 격자. 여덟 개를 스크롤 없이 비교</td><td>B 가로 캐러셀 / C 큰 미리보기와 격자</td><td>이름 40자, 시기 설명 80자, 프리셋 8개, 사용자 이미지 3:4</td><td>결정 전</td></tr>
+<tr><th>S-01 곡률</th><td>메모 칸 상단 16px · 썸네일 8px</td><td>공통 규칙대로 모두 0px</td><td>공통 규칙 예외는 S-01 두 요소에만 적용. 비교 영역에서 직각으로 바꿔 볼 수 있음</td><td>결정 전</td></tr>
+<tr><th>공통 화면</th><td>웜 뉴트럴</td><td>다크 모드 제공</td><td>라이트 바탕 #f0eeea, 종이 #faf9f6. 다크 바탕 #1c1c1e, 종이 #262629. 터치 ≥44px, 본문 대비 ≥4.5:1. 표지 패턴은 표지 콘텐츠 예시</td><td>기본값(AI)</td></tr>
+<tr><th>Q-01 · Q-09</th><td>하단은 메모 목록, 태그는 메모에만 적용</td><td>하단을 노트 목록으로 / 표지까지 태그 필터</td><td>표지는 최근 수정순, 메모는 최신 저장순</td><td>결정 전</td></tr>
+<tr><th>Q-02</th><td>펜과 페이지 번호 제외</td><td>펜 또는 페이지 번호 포함</td><td>본문 서식은 굵게·기울임·글머리·번호 목록</td><td>결정 전</td></tr>
+<tr><th>Q-04</th><td>파일과 명시적으로 삽입한 링크 카드 합계 최대 10개</td><td>파일만 10개로 제한 / 링크는 첨부로 분류하지 않음</td><td>본문의 첫 유효 파일 토큰·링크 카드가 유형 결정. URL 단독은 도메인 분류, 일반 문장 속 링크는 텍스트. 파일만 Attachment 행으로 저장. 첫 블록을 제거하거나 옮기면 잠기지 않은 유형과 sourceUrl을 현재 본문으로 다시 계산</td><td>결정 전</td></tr>
+<tr><th>D-01</th><td>기존 저장소 보존 · 기존 자료 메뉴 · 자동 이관 없음</td><td>실제 데이터 이관은 별도 계약으로 실행</td><td>기존 자료 → 레거시 홈(제안 /legacy). /desk·/list·/settings 유지. 신규 WP-2 자료는 별도 저장소</td><td>결정 전</td></tr>
+</tbody>
+</table></div>
+</section>
+</main>
+<script>
+const options = {
+  home: [['노트별 목록','표지를 누르면 해당 노트의 목록으로 이동합니다. 그 화면에서 적으면 선택한 노트에 저장됩니다.','홈에서 전체 메모를 계속 볼 수 있습니다. 이동이 한 번 생깁니다.'],
+    ['홈 안에서 노트 선택','표지를 누르면 하단 메모 목록만 해당 노트로 바뀝니다. 전체 노트로 되돌릴 수 있습니다.','홈 문맥을 유지합니다. 태그와 노트 필터가 겹칩니다.'],
+    ['읽기 전용 미리보기','표지를 누르면 선택한 노트의 메모를 시트로 둘러봅니다. 메모를 누르면 에디터로 이동합니다.','책장을 벗어나지 않습니다. 이 시트에서 바로 작성할 수 없습니다.']],
+  editor: [['첨부와 편집 도구 분리','왼쪽에 첨부·링크, 오른쪽에 서식·태그·이동을 둡니다. 서식을 누르면 네 가지 서식이 열립니다.','각 도구를 한 번에 찾을 수 있습니다. 좁은 폭에서 두 그룹이 가까워집니다.'],
+    ['첨부와 더보기','하단은 첨부·링크와 편집 메뉴로 줄입니다. 편집 메뉴에서 서식·태그·이동을 고릅니다.','종이 아래의 버튼이 줄어듭니다. 자주 쓰는 기능에 한 번 더 눌러야 합니다.'],
+    ['문서 안 서식','서식을 종이 안에서 엽니다. 하단에는 첨부·링크·태그·이동을 둡니다.','편집 위치 가까이에서 서식을 고릅니다. 본문 시작이 아래로 내려갑니다.']],
+  sheet: [['4×2 표지 격자','여덟 표지를 두 줄로 한 번에 봅니다. 원하는 표지를 누르고 노트 만들기를 누릅니다.','비교가 빠릅니다. 큰 표지 보기는 파일 선택 다음에 볼 수 있습니다.'],
+    ['가로 표지 캐러셀','표지를 한 줄에 두고 가로로 밀어 고릅니다. 선택한 표지가 강조됩니다.','시트가 낮습니다. 화면 밖 표지를 보려면 스크롤이 필요합니다.'],
+    ['큰 표지 미리보기','선택한 표지를 3:4 큰 카드로 보여 줍니다. 아래에서 다른 프리셋으로 바꿉니다.','표지 구성을 자세히 봅니다. 시트가 길어집니다.']]
+};
+const states = [
+  ['empty','빈 메모'],['none','태그 무결과'],['fail','빠른 저장 실패'],['busy','저장 중 · 연타'],['offline','오프라인 · 비로그인'],
+  ['editor-fail','에디터 저장 실패'],['attachment','첨부 혼합'],['attachment-fail','첨부 실패'],
+  ['sheet-fail','노트 저장 실패'],['delete','노트 삭제 확인'],['default','기본 노트 편집']
+];
+const sampleBooks = ['첫 노트','산책의 기록','읽은 문장'];
+const sampleNotes = [
+  {title:'비 온 뒤의 골목',book:'산책의 기록',date:'11.24',tag:'산책',mark:'◒'},
+  {title:'다시 읽고 싶은 문장',book:'읽은 문장',date:'11.22',tag:'읽기',mark:'Aa'},
+  {title:'주말에 해 볼 것',book:'첫 노트',date:'11.21',tag:'일상',mark:'✦'}
+];
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const btn = (label, action, extra='') => '<button type="button" data-action="'+action+'" '+extra+'>'+label+'</button>';
+let serial = 0;
+function mount(host, kind, mode='A', state='normal') {
+  const frame = document.createElement('div');
+  frame.className = 'frame';
+  frame.dataset.mode = mode;
+  frame.dataset.kind = kind;
+  host.replaceChildren(frame);
+  const id = 'demo-'+(++serial);
+  let books = [...sampleBooks], notes = sampleNotes.map(note=>({...note}));
+  let defaultBook = '첫 노트';
+  let view = kind === 'flow' ? 'home' : kind, book = '', tag = '전체', draft = '', status = '', title = '', body = '', tools = '', selected = 0, cover = '', formName = '', formPeriod = '', sheetEdit = '';
+  let dialog, timer, activeNote;
+  let rounded = true;
+  if (state === 'empty') {books = ['첫 노트']; notes = [];}
+  if (state === 'none') tag = '여행';
+  if (state === 'fail' || state === 'busy') draft = '밤에 다시 읽을 문장';
+  if (state === 'editor-fail' || state === 'attachment' || state === 'attachment-fail' || kind === 'editor') {title = '비 온 뒤의 골목';body = '비가 그친 뒤에 골목을 한 바퀴 걸었다.';}
+  if (state === 'editor-fail') status = '변경 사항을 저장하지 못했어요. 이 화면에 입력이 남아 있어요.';
+  if (state === 'attachment-fail') status = '사진을 첨부하지 못했어요. 이미지 한도는 20MB입니다.';
+  let hasMedia = kind === 'editor' && state !== 'attachment-fail';
+  if (state === 'delete' || state === 'default') {sheetEdit = state === 'delete' ? '산책의 기록' : '첫 노트';formName = sheetEdit;}
+  function noteList(items, emptyText='아직 메모가 없어요. 위에 첫 메모를 적어 보세요.') {
+    return '<div class="note-list">'+(items.length ? items.map(n =>
+      btn('<span class="thumb" aria-hidden="true">'+n.mark+'</span><span><b>'+esc(n.title)+'</b><small>'+esc(n.book)+'</small></span><small class="date-chip">'+n.date+'</small>', 'note', 'class="note" data-index="'+notes.indexOf(n)+'"')).join('') : '<p class="message muted">'+emptyText+'</p>')+'</div>';
+  }
+  function quickInput() {
+    return '<form class="quick"><input aria-label="빠른 작성" placeholder="아이디어를 적거나 붙여넣기" value="'+esc(draft)+'" '+(state==='busy'?'readonly':'')+'>'+btn('＋','capture','aria-label="첨부"')+btn('↗','expand','aria-label="에디터 열기"')+'</form>';
+  }
+  function home() {
+    const shown = notes.filter(n => (!book || n.book === book) && (tag === '전체' || tag === n.tag));
+    const tags = [...new Set(['전체',...notes.map(n=>n.tag).filter(Boolean),...(state==='none'?['여행']:[])])];
+    const shelf = books.map((n,i) => '<div class="book-tile">'+btn('<b>'+esc(n)+'</b>','book','class="book-cover art'+(i%3+1)+'" data-book="'+i+'"'+(mode==='B'?' aria-pressed="'+(book===n)+'"':''))+btn('⋯','edit-book','class="edit-cover" data-book="'+i+'" aria-label="'+esc(n)+' 편집"')+'</div>').join('');
+    return '<div class="bar"><h3>내 노트</h3>'+btn('＋','new-book','aria-label="새 노트"')+btn('⋮','home-menu','aria-label="홈 메뉴"')+'</div>'
+      +(tools==='home-menu'?'<div class="tray">'+btn('기존 자료','legacy','class="compact"')+'</div>':'')
+      +'<div class="shelf" aria-label="최근 수정한 노트">'+shelf+'</div><div class="memo">'
+      +quickInput()+(book?'<div class="row"><b>'+esc(book)+'</b>'+btn('전체 노트','all-books','class="compact"')+'</div>':'')
+      +'<div class="tabs" aria-label="태그">'+tags.map(t=>btn(esc(t),'tag','data-tag="'+esc(t)+'" aria-pressed="'+(tag===t)+'"')).join('')+'</div>'
+      +(state==='fail'?'<p class="message error" role="alert">저장하지 못했어요. 입력을 유지했어요. '+btn('다시 시도','retry','class="compact"')+'</p>':state==='busy'?'<p class="message" role="status">저장 중…</p>':state==='offline'?'<p class="message muted">오프라인 · 이 기기에 저장됩니다.</p>':'')
+      +'<p class="message" data-status role="status">'+esc(status)+'</p>'
+      +noteList(shown,tag==='전체'?'아직 메모가 없어요. 위에 첫 메모를 적어 보세요.':'이 태그의 메모가 없습니다')+'</div>';
+  }
+  function bookList() {
+    return '<div class="bar">'+btn('←','back','aria-label="홈으로"')+'<h3>'+esc(book)+'</h3>'+btn('⋯','edit-book','data-book="'+books.indexOf(book)+'" aria-label="노트 편집"')+'</div><div class="memo">'+quickInput()+'<p class="message" data-status role="status">'+esc(status)+'</p>'+noteList(notes.filter(n=>n.book===book))+'</div>';
+  }
+  function formatTools() {
+    return '<div class="row" aria-label="서식">'+['굵게','기울임','글머리','번호 목록'].map(n=>btn(n,'format','class="compact" data-format="'+n+'"')).join('')+'</div>';
+  }
+  function editor() {
+    const format = btn('서식','tools','class="compact" data-tool="format" aria-expanded="'+(tools==='format')+'"');
+    const tags = btn('태그','tools','class="compact" data-tool="tag"');
+    const move = btn('이동','tools','class="compact" data-tool="move"');
+    return '<div class="bar">'+btn('←','back','aria-label="에디터에서 나가기"')+btn(esc(book||'첫 노트'),'tools','class="book-name" data-tool="move"')+btn('⋮','tools','data-tool="editor-menu" aria-label="메모 메뉴"')+'</div>'
+      +(tools==='editor-menu'?'<div class="tray">'+btn('메모 삭제','remove-note','class="compact"')+'</div>':'')
+      +'<div class="paper"><div class="date-line"><small>2026년 11월 24일</small><small>화요일</small></div>'
+      +'<input class="paper-title" aria-label="제목" placeholder="제목" maxlength="120" value="'+esc(title)+'">'
+      +(mode==='C'?format+(tools==='format'?formatTools():''):'')
+      +'<textarea aria-label="본문" placeholder="내용을 적어 보세요" rows="4">'+esc(body)+'</textarea>'
+      +(hasMedia?'<div class="media"><b>산책길에서 들은 음악</b><small>오디오 파일'+(state==='attachment'?' · 첫 첨부 → 음악 유형':'')+'</small>'+btn('▷ 재생','play')+'</div><div class="media"><b>골목의 오후</b><small>youtu.be · 링크 카드</small>'+btn('외부 링크 열기 ↗','external')+'</div>':'')
+      +'<div class="row">'+(hasMedia?'<small>#산책</small>':'')+btn('+ 태그','tools','class="compact" data-tool="tag"')+'</div>'
+      +'<p class="message '+((state==='editor-fail'||state==='attachment-fail')?'error':'muted')+'" data-status role="status">'+esc(status)+'</p></div>'
+      +'<div class="toolbar split"><div class="row">'+btn('첨부','tools','class="compact" data-tool="attach"')+btn('링크','tools','class="compact" data-tool="link"')+'</div><div class="row">'
+      +(mode==='B'?btn('편집 도구','tools','class="compact" data-tool="more"'):(mode==='A'?format:'')+tags+move)+'</div></div>'
+      +'<div class="tray">'+(tools==='more'?'<div class="row">'+format+tags+move+'</div>':tools==='format'&&mode!=='C'?formatTools():tools==='move'?'<div class="row">'+books.map((n,i)=>btn(esc(n),'move','class="compact" data-book="'+i+'"')).join('')+'</div>':tools==='tag'?'<input aria-label="새 태그" placeholder="새 태그" maxlength="20">':tools==='attach'?btn('예시 파일 첨부','media','class="compact"'):tools==='link'?'<div class="row"><input aria-label="링크 URL" type="url" placeholder="https://…">'+btn('링크 카드 추가','media','class="compact"')+'</div>':'')+'</div>';
+  }
+  function sheetContent() {
+    const swatches = Array.from({length:8},(_,i) => btn('<span>'+(i+1)+'</span>','preset','class="swatch art'+(i+1)+'" data-cover="'+(i+1)+'" aria-label="기본 표지 '+(i+1)+'" aria-pressed="'+(selected===i+1)+'"')).join('');
+    return '<div class="sheet"><div class="sheet-head"><h3 id="'+id+'-title">'+(sheetEdit?'노트 편집':'새 노트')+'</h3>'+btn('×','close','aria-label="시트 닫기"')+'</div>'
+      +'<label>이름<input data-field="name" required maxlength="40" placeholder="예: 산책의 기록" value="'+esc(formName)+'"></label>'
+      +'<label><span>시기 설명 <small>(선택)</small></span><input data-field="period" maxlength="80" placeholder="예: 11월의 산책" value="'+esc(formPeriod)+'"></label>'
+      +'<p>표지</p>'+(mode==='C'||cover?'<div class="preview-cover book-cover art'+(selected||1)+'" aria-label="선택한 3:4 표지"></div>':'')
+      +'<div class="covers '+(mode==='B'?'rail':'')+'">'+swatches+'</div>'
+      +btn('이미지 선택','upload','class="compact"')+'<input hidden type="file" accept="image/*" aria-label="표지 이미지">'
+      +'<p class="message error" data-sheet-error role="alert">'+(state==='sheet-fail'?'노트를 저장하지 못했어요. 이름과 표지를 유지했어요.':'')+'</p>'
+      +'<div class="sheet-actions">'+(sheetEdit&&sheetEdit!==defaultBook?btn('노트 삭제','delete','class="compact"'):'')+btn(sheetEdit?'변경 저장':'노트 만들기','save-book','class="primary"')+'</div></div>';
+  }
+  function showDialog(markup, modal) {
+    dialog = document.createElement('dialog');
+    dialog.setAttribute('aria-labelledby',id+'-title');
+    dialog.innerHTML = markup;
+    frame.append(dialog);
+    if (modal) {
+      dialog.showModal();
+      const bounds = frame.getBoundingClientRect();
+      dialog.style.position = 'fixed';
+      dialog.style.left = Math.max(0,bounds.left)+'px';
+      dialog.style.right = 'auto';
+      dialog.style.width = Math.min(bounds.width,innerWidth)+'px';
+      dialog.style.bottom = '0';
+      dialog.style.maxHeight = '92dvh';
+    } else {
+      frame.dataset.staged = 'true';
+      dialog.show();
+    }
+    if (cover && dialog.querySelector('.preview-cover')) dialog.querySelector('.preview-cover').style.backgroundImage = 'url('+cover+')';
+  }
+  function render() {
+    frame.classList.toggle('square',!rounded);
+    delete frame.dataset.staged;
+    frame.innerHTML = view==='editor'?editor():view==='book'?bookList():home();
+    if (kind==='sheet' || ['sheet','preview','confirm'].includes(view)) frame.insertAdjacentHTML('beforeend','<div class="overlay"></div>');
+    if (view==='sheet') showDialog(sheetContent(),kind!=='sheet');
+    if (view==='preview') showDialog('<div class="sheet-head"><h3 id="'+id+'-title">'+esc(book)+'</h3>'+btn('×','close','aria-label="미리보기 닫기"')+'</div>'+noteList(notes.filter(n=>n.book===book),'이 노트에는 아직 메모가 없습니다.'),true);
+    if (view==='confirm') showDialog('<div class="sheet-head"><h3 id="'+id+'-title">이 노트를 삭제할까요?</h3>'+btn('×','close','aria-label="삭제 취소"')+'</div><p class="message">이 노트에 있는 메모를 어떻게 할까요?</p><div class="row">'+btn('조각을 기본 노트로 옮기기','delete-move','class="compact"')+btn('함께 삭제','delete-all','class="compact"')+'</div>',kind!=='sheet');
+  }
+  let returnFocus, returnView = 'home';
+  function setView(next){view=next;tools='';status='';render();}
+  function openSheet(name=''){returnView=view;sheetEdit=name;formName=name;formPeriod='';selected=0;cover='';setView('sheet');}
+  function closeSheet(){
+    if(kind==='sheet'){setView('home');frame.querySelector('[data-action="new-book"]').focus();return;}
+    if(view==='preview') book='';
+    setView(view==='preview'?'home':returnView);
+    if(returnFocus) frame.querySelector(returnFocus)?.focus();
+  }
+  function saveQuick() {
+    const input = frame.querySelector('.quick input');
+    if (!input || !input.value.trim() || state==='busy') return;
+    if(state==='fail'){input.focus();return;}
+    notes.unshift({title:input.value.trim(),book:book||defaultBook,date:'11.24',tag:'',mark:'Aa'});
+    draft=''; status='이 기기에 저장했어요.';render();frame.querySelector('.quick input').focus();
+  }
+  frame.addEventListener('submit',e=>{e.preventDefault();saveQuick();});
+  frame.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.isComposing||e.keyCode===229))e.preventDefault();});
+  frame.addEventListener('cancel',e=>{e.preventDefault();closeSheet();},true);
+  frame.addEventListener('change',e=>{
+    if(e.target.type!=='file'||!e.target.files.length)return;
+    const reader=new FileReader();
+    reader.addEventListener('load',()=>{cover=reader.result;selected=0;if(view==='sheet')render();});
+    reader.readAsDataURL(e.target.files[0]);
+  });
+  frame.addEventListener('input',e=>{
+    if(e.target.closest('.quick'))draft=e.target.value;
+    if(e.target.dataset.field==='name')formName=e.target.value;
+    if(e.target.dataset.field==='period')formPeriod=e.target.value;
+    if(view!=='editor'||!e.target.matches('textarea,.paper-title'))return;
+    if(e.target.matches('textarea'))body=e.target.value;else title=e.target.value;
+    const line=frame.querySelector('[data-status]');
+    if(state==='editor-fail')return;
+    line.textContent='저장 중…';
+    clearTimeout(timer);
+    timer=setTimeout(()=>{line.textContent='이 기기에 저장했어요.';},500);
+  });
+  frame.addEventListener('click',e=>{
+    const control=e.target.closest('button[data-action]');
+    if(!control)return;
+    const {action,...data}=control.dataset;
+    switch(action){
+      case 'back':
+        clearTimeout(timer);
+        if(view==='editor'&&activeNote&&state!=='editor-fail')activeNote.title=title.trim()||body.trim().split('\n')[0]||activeNote.title;
+        if(view==='editor'&&book&&mode==='A')setView('book');else {book='';setView(kind==='editor'?'editor':'home');}
+        break;
+      case 'book':
+        book=books[Number(data.book)];tag='전체';returnFocus='[data-action="book"][data-book="'+data.book+'"]';
+        if(mode==='B')render();else setView(mode==='C'?'preview':'book');
+        break;
+      case 'all-books': book='';tag='전체';render();break;
+      case 'tag': tag=data.tag;render();frame.querySelector('.tabs [aria-pressed=true]')?.focus();break;
+      case 'expand': activeNote=null;title='';body=draft;hasMedia=false;setView('editor');break;
+      case 'note':
+        activeNote=notes[Number(data.index)]; title=activeNote.title;body='';hasMedia=false;
+        if(view==='preview')book=activeNote.book;
+        setView('editor');break;
+      case 'new-book': returnFocus='[data-action="new-book"]';openSheet();break;
+      case 'edit-book': returnFocus='[data-action="edit-book"]'+(view==='book'?'':'[data-book="'+data.book+'"]');openSheet(books[Number(data.book)]);break;
+      case 'close': closeSheet();break;
+      case 'preset': selected=Number(data.cover);cover='';render();frame.querySelector('[data-cover="'+selected+'"]')?.focus();break;
+      case 'upload': dialog.querySelector('input[type=file]').click();break;
+      case 'save-book': {
+        const name=formName.trim();const error=dialog.querySelector('[data-sheet-error]');
+        if(!name){error.textContent='노트 이름을 입력해 주세요.';dialog.querySelector('[data-field=name]').focus();break;}
+        if(state==='sheet-fail'){error.textContent='노트를 저장하지 못했어요. 입력을 유지했어요.';break;}
+        if(sheetEdit){if(sheetEdit===defaultBook)defaultBook=name;books[books.indexOf(sheetEdit)]=name;notes.forEach(n=>{if(n.book===sheetEdit)n.book=name;});if(book===sheetEdit)book=name;}
+        else books.unshift(name);
+        closeSheet();break;
+      }
+      case 'delete': setView('confirm');break;
+      case 'delete-move': case 'delete-all':
+        if(action==='delete-move')notes.forEach(n=>{if(n.book===sheetEdit)n.book=defaultBook;});
+        else notes=notes.filter(n=>n.book!==sheetEdit);
+        books=books.filter(b=>b!==sheetEdit);book='';returnView='home';closeSheet();break;
+      case 'tools': tools=tools===data.tool?'':data.tool;render();break;
+      case 'media': hasMedia=true;status='첨부 예시가 추가됐어요.';tools='';render();break;
+      case 'move': book=books[Number(data.book)];if(activeNote)activeNote.book=book;tools='';render();break;
+      case 'format': {
+        const field=frame.querySelector('textarea');const sample=({굵게:'**텍스트**',기울임:'*텍스트*',글머리:'- 항목','번호 목록':'1. 항목'})[data.format];
+        field.setRangeText(sample,field.selectionStart,field.selectionEnd,'end');field.dispatchEvent(new Event('input',{bubbles:true}));field.focus();break;
+      }
+      case 'remove-note': if(activeNote)notes=notes.filter(n=>n!==activeNote);setView('home');break;
+      case 'capture': status='WP-2-2 첨부 버튼 위치 예시입니다.';render();break;
+      case 'home-menu': tools=tools?'':'home-menu';render();break;
+      case 'legacy': status='기존 자료는 보존된 레거시 화면에서 엽니다.';render();break;
+      case 'retry': frame.querySelector('.quick input')?.focus();break;
+      case 'play': control.textContent=control.textContent.startsWith('▷')?'Ⅱ 일시 정지':'▷ 재생';break;
+      case 'external': status='제품에서 이 링크는 브라우저로 열립니다.';frame.querySelector('[data-status]').textContent=status;break;
+    }
+  });
+  if(kind==='sheet'&&state==='normal') {view='sheet';formName='11월 산책';}
+  if(state==='delete')view='confirm';
+  if(state==='default'||state==='sheet-fail'){view='sheet';if(state==='sheet-fail')formName='11월 산책';}
+  render();
+  return {setRounded(value){rounded=value;frame.classList.toggle('square',!rounded);}};
+}
+for(const [group,items] of Object.entries(options)){
+  const section=document.querySelector('#el-'+group);
+  const cands=section.querySelector('.cands');
+  const controls=section.querySelector('.controls');
+  const select=document.createElement('select');
+  select.dataset.for=section.id;
+  select.setAttribute('aria-label','후보 다시 보기');
+  select.innerHTML='<option value="">전체 비교</option>'+items.map(([name],i)=>'<option value="'+('ABC'[i])+'">'+('ABC'[i])+' · '+name+'</option>').join('');
+  controls.append(select);
+  const screens=[];
+  items.forEach(([name,flow,tradeoff],i)=>{
+    const card=document.createElement('article'),mode='ABC'[i];
+    card.className='cand'+(i===0?' recommended':'');card.dataset.id=mode;
+    card.innerHTML='<h3>'+mode+' · '+name+(i===0?' <span class="badge">추천</span>':'')+'</h3><div class="screen-host"></div><p>'+flow+'</p><p class="muted">'+tradeoff+'</p>';
+    cands.append(card);
+    screens.push(mount(card.querySelector('.screen-host'),group,mode));
+  });
+  select.addEventListener('change',()=>{
+    [...cands.children].forEach(card=>{card.hidden=Boolean(select.value)&&card.dataset.id!==select.value;});
+  });
+  if(group==='home'){
+    const toggle=document.createElement('button');toggle.type='button';toggle.textContent='직각으로 보기';toggle.setAttribute('aria-pressed','false');
+    toggle.addEventListener('click',()=>{const square=toggle.getAttribute('aria-pressed')==='false';toggle.setAttribute('aria-pressed',String(square));toggle.textContent=square?'둥근 모서리로 보기':'직각으로 보기';screens.forEach(s=>s.setRounded(!square));});
+    controls.append(toggle);
+  }
+}
+const theme=document.querySelector('#theme'), preference=matchMedia('(prefers-color-scheme: dark)');
+function setTheme(dark){document.documentElement.dataset.theme=dark?'dark':'light';theme.setAttribute('aria-pressed',String(dark));theme.textContent=dark?'라이트 모드':'다크 모드';}
+setTheme(preference.matches);
+theme.addEventListener('click',()=>setTheme(theme.getAttribute('aria-pressed')==='false'));
+const flow=document.querySelector('#flow');
+mount(flow,'flow');
+document.querySelector('#reset-flow').addEventListener('click',()=>mount(flow,'flow'));
+const statesHost=document.querySelector('#except .state'),stateFrame=document.querySelector('#state-frame');
+function showState(state){
+  statesHost.querySelectorAll('button').forEach(control=>control.setAttribute('aria-pressed',String(control.dataset.state===state)));
+  const kind=state.startsWith('editor')||state.startsWith('attachment')?'editor':['sheet-fail','delete','default'].includes(state)?'sheet':'home';
+  mount(stateFrame,kind,'A',state);
+}
+for(const [state,label] of states){
+  const control=document.createElement('button');control.type='button';control.dataset.state=state;control.textContent=label;
+  control.addEventListener('click',()=>showState(state));statesHost.append(control);
+}
+showState('empty');
+</script>
+</body>
+</html>
+
