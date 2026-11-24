@@ -19,4 +19,13 @@ describe('placePieces small canvas fallback', () => {
     const poses = placePieces({ width: 1280, height: 800 }, pieces, collageConfig.seed);
     expect(poses).toHaveLength(pieces.length);
   });
+
+  it('adapts fallback scale on very small canvases (120x120)', () => {
+    for (const mode of ['default', 'performance'] as const) {
+      const pieces = getFixturePieces(mode);
+      const poses = placePieces({ width: 120, height: 120 }, pieces, collageConfig.seed);
+      expect(poses).toHaveLength(pieces.length);
+      expect(poses.every((p) => p.scale > 0)).toBe(true);
+    }
+  });
 });

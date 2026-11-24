@@ -337,6 +337,7 @@ function buildRandomCandidate(
 }
 
 function buildSafeCandidate(
+  size: CanvasSize,
   spread: Spread,
   pieces: readonly PreviewPiece[],
   edgeCount: number,
@@ -347,8 +348,11 @@ function buildSafeCandidate(
   const edgeIndices = new Set<number>();
   for (let i = interiorCount; i < pieces.length; i++) edgeIndices.add(i);
 
+  const { unit } = getDensity(size, pieces.length);
+  const normUnit = (unit * scaleFactor) / spread.width;
+
   const poses: PiecePose[] = [];
-  const cols = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, interiorCount))));
+  const cols = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, interiorCount) * (spread.width / spread.height))));
   const rows = Math.max(1, Math.ceil(Math.max(1, interiorCount) / cols));
 
   for (let i = 0; i < pieces.length; i++) {
@@ -365,8 +369,8 @@ function buildSafeCandidate(
       x = ((col + 0.5) / cols - 0.5) * 0.72;
       y = ((row + 0.5) / rows - 0.5) * aspectY * 0.72;
       if (i === 1 && interiorCount >= 2) {
-        x = poses[0].x + 0.12;
-        y = poses[0].y + aspectY * 0.08;
+        x = clamp(poses[0].x + normUnit * 0.6, -0.4, 0.4);
+        y = clamp(poses[0].y + normUnit * 0.35, -aspectY * 0.4, aspectY * 0.4);
       }
     } else {
       const e = i - interiorCount;
@@ -420,8 +424,8 @@ export function placePieces(
   }
 
   let lastOcclusion = 0;
-  for (const scaleFactor of [1, 0.8, 0.65, 0.5, 0.35]) {
-    const safe = buildSafeCandidate(spread, pieces, edgeCount, scaleFactor);
+  for (const scaleFactor of [1, 0.8, 0.65, 0.5, 0.35, 0.25, 0.18, 0.12]) {
+    const safe = buildSafeCandidate(size, spread, pieces, edgeCount, scaleFactor);
     const safeCheck = evaluateCandidate(size, spread, pieces, safe.poses, safe.edgeIndices);
     lastOcclusion = safeCheck.maxOcclusion;
     if (safeCheck.ok) return Object.freeze(safe.poses);
