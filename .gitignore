@@ -23,3 +23,10 @@ DESIGN.md
 /docs/templates/
 /개발산출물/
 /계획/
+
+# AI 작업 규칙 · 하네스 문서 (~/config/dontcleanmydesk/ 에서 동기화, 미커밋 유지)
+/.ai-template.env
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/.team_docs/
