@@ -14,6 +14,7 @@ export interface Spread {
   cy: number;
   width: number;
   height: number;
+  pages: 1 | 2;
 }
 
 export interface Point2D {
@@ -57,11 +58,15 @@ export const collageConfig = {
   targetAreaRatio: 0.35,
   targetMin: 8,
   targetMax: 15,
-  // 시안 1-C 확정: 와이드 점유 (+10%)
+  // 반응형 노트 비율: 가로형(태블릿 가로·폴드 펼침·데스크탑)은 2페이지, 세로형(모바일·태블릿 세로)은 반대편 9%만 보이는 1페이지
+  twoPageMinAspect: 0.9,
   spreadWidthRatioW: 0.94,
   spreadWidthRatioH: 1.15,
   spreadHeightRatioH: 0.74,
-  spreadHeightRatioW: 1.14,
+  spreadAspectTwoPage: 1.55,
+  singlePagePeekRatio: 0.09,
+  singlePageRightMarginRatio: 0.05,
+  singlePageHeightRatioH: 0.74,
   // 무책상 A/B 확정: 단색 기본 UI 바탕(#f0eeea) + 양면 노트(#faf9f6) + 저채도 웜 차콜 2단 접촉 그림자(#1f1d1b)
   palette: {
     backdrop: '#f0eeea',
@@ -86,13 +91,13 @@ export const collageConfig = {
   occlusionSamples: 12,
   physics: {
     tickMs: 1000 / 60,
-    frictionAir: 0.12,
-    restitution: 0.05,
+    frictionAir: 0.16,
+    restitution: 0,
     driverMass: 1,
-    targetMass: 3,
+    targetMass: 3.6,
     dragThreshold: 8,
     sampleWindowMs: 80,
-    maxThrowSpeed: 24,
+    maxThrowSpeed: 19,
     maxDragStep: 8,
     wallMargin: 0.15,
     stopSpeed: 0.05,
@@ -158,19 +163,39 @@ export function getDensity(size: CanvasSize, itemCount: number): DensityResult {
 }
 
 export function getSpread(size: CanvasSize): Spread {
-  const width = Math.min(
-    size.width * collageConfig.spreadWidthRatioW,
-    size.height * collageConfig.spreadWidthRatioH,
-  );
+  const isTwoPage = size.width >= size.height * collageConfig.twoPageMinAspect;
+  if (isTwoPage) {
+    const width = Math.min(
+      size.width * collageConfig.spreadWidthRatioW,
+      size.height * collageConfig.spreadWidthRatioH,
+    );
+    const height = Math.min(
+      size.height * collageConfig.spreadHeightRatioH,
+      width / collageConfig.spreadAspectTwoPage,
+    );
+    return {
+      cx: size.width / 2,
+      cy: size.height / 2,
+      width,
+      height,
+      pages: 2,
+    };
+  }
+  // 모바일/태블릿 세로: 해상도와 무관하게 왼쪽 반대편 페이지 9% + 접힘선 + 오른쪽 페이지 86% + 여백 5%로 고정 전환
+  const peekW = size.width * collageConfig.singlePagePeekRatio;
+  const rightMargin = size.width * collageConfig.singlePageRightMarginRatio;
+  const pageW = size.width - peekW - rightMargin;
+  const width = pageW * 2;
   const height = Math.min(
-    size.height * collageConfig.spreadHeightRatioH,
-    size.width * collageConfig.spreadHeightRatioW,
+    size.height * collageConfig.singlePageHeightRatioH,
+    width / collageConfig.spreadAspectTwoPage,
   );
   return {
-    cx: size.width / 2,
+    cx: peekW,
     cy: size.height / 2,
     width,
     height,
+    pages: 1,
   };
 }
 
@@ -306,7 +331,9 @@ function buildRandomCandidate(
   for (let i = interiorCount; i < pieces.length; i++) edgeIndices.add(i);
 
   const poses: PiecePose[] = [];
-  const cols = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, interiorCount) * (spread.width / spread.height))));
+  const isSingle = spread.pages === 1;
+  const visibleW = isSingle ? spread.width * 0.56 : spread.width;
+  const cols = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, interiorCount) * (visibleW / spread.height))));
   const rows = Math.max(1, Math.ceil(Math.max(1, interiorCount) / cols));
 
   for (let i = 0; i < pieces.length; i++) {
@@ -319,24 +346,26 @@ function buildRandomCandidate(
     if (i < interiorCount) {
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const cellX = ((col + 0.5) / cols - 0.5) * 0.72;
+      const xCenter = isSingle ? 0.2 : 0;
+      const xSpan = isSingle ? 0.36 : 0.72;
+      const cellX = xCenter + ((col + 0.5) / cols - 0.5) * xSpan;
       const cellY = ((row + 0.5) / rows - 0.5) * aspectY * 0.72;
       // 인접한 두 조각은 자연스러운 겹침이 생기도록 첫 쌍을 살짝 가깝게 유도
       const pull = i === 1 ? 0.35 : 0;
-      const jitterX = (rng() * 2 - 1) * 0.08;
+      const jitterX = (rng() * 2 - 1) * (isSingle ? 0.04 : 0.08);
       const jitterY = (rng() * 2 - 1) * aspectY * 0.08;
-      x = clamp(cellX + jitterX - pull * 0.16, -0.38, 0.38);
+      x = clamp(cellX + jitterX - pull * (isSingle ? 0.08 : 0.16), isSingle ? -0.02 : -0.38, isSingle ? 0.42 : 0.38);
       y = clamp(cellY + jitterY, -aspectY * 0.38, aspectY * 0.38);
     } else {
       const edgeIdx = i - interiorCount;
-      const side = edgeIdx % 4;
-      const t = (rng() * 0.52 - 0.26);
+      const side = isSingle ? (edgeIdx % 3) + 1 : edgeIdx % 4;
+      const t = isSingle ? (0.04 + rng() * 0.36) : (rng() * 0.52 - 0.26);
       if (side === 0) {
         x = -0.49;
         y = t * aspectY;
       } else if (side === 1) {
         x = 0.49;
-        y = t * aspectY;
+        y = (rng() * 0.52 - 0.26) * aspectY;
       } else if (side === 2) {
         x = t;
         y = -aspectY * 0.49;
@@ -368,7 +397,9 @@ function buildSafeCandidate(
   const normUnit = (unit * scaleFactor) / spread.width;
 
   const poses: PiecePose[] = [];
-  const cols = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, interiorCount) * (spread.width / spread.height))));
+  const isSingle = spread.pages === 1;
+  const visibleW = isSingle ? spread.width * 0.56 : spread.width;
+  const cols = Math.max(2, Math.ceil(Math.sqrt(Math.max(1, interiorCount) * (visibleW / spread.height))));
   const rows = Math.max(1, Math.ceil(Math.max(1, interiorCount) / cols));
 
   for (let i = 0; i < pieces.length; i++) {
@@ -382,16 +413,20 @@ function buildSafeCandidate(
     if (i < interiorCount) {
       const col = i % cols;
       const row = Math.floor(i / cols);
-      x = ((col + 0.5) / cols - 0.5) * 0.72;
+      const xCenter = isSingle ? 0.2 : 0;
+      const xSpan = isSingle ? 0.36 : 0.72;
+      x = xCenter + ((col + 0.5) / cols - 0.5) * xSpan;
       y = ((row + 0.5) / rows - 0.5) * aspectY * 0.72;
       if (i === 1 && interiorCount >= 2) {
-        x = clamp(poses[0].x + normUnit * 0.6, -0.4, 0.4);
+        x = clamp(poses[0].x + normUnit * 0.6, isSingle ? -0.02 : -0.4, isSingle ? 0.42 : 0.4);
         y = clamp(poses[0].y + normUnit * 0.35, -aspectY * 0.4, aspectY * 0.4);
       }
     } else {
       const e = i - interiorCount;
-      const side = e % 4;
-      const offset = ((Math.floor(e / 4) % 2) === 0 ? -0.18 : 0.18);
+      const cycle = isSingle ? 3 : 4;
+      const side = isSingle ? (e % 3) + 1 : e % 4;
+      const offset = ((Math.floor(e / cycle) % 2) === 0 ? -0.18 : 0.18);
+      const singleXOffset = ((Math.floor(e / 3) % 2) === 0 ? 0.12 : 0.34);
       if (side === 0) {
         x = -0.5;
         y = offset * aspectY;
@@ -399,10 +434,10 @@ function buildSafeCandidate(
         x = 0.5;
         y = -offset * aspectY;
       } else if (side === 2) {
-        x = offset;
+        x = isSingle ? singleXOffset : offset;
         y = -aspectY * 0.5;
       } else {
-        x = -offset;
+        x = isSingle ? singleXOffset : -offset;
         y = aspectY * 0.5;
       }
     }

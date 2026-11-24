@@ -43,7 +43,8 @@ describe('W1-05 collage physics', () => {
     expect(physics.tick(dt)).toBe(true);
     expect(center(1)).toEqual({ x: 267, y: 300 });
     expect(physics.snapshot()[1]).toMatchObject({ z: 5, lift: 1, rotation: 0.2, scale: 1 });
-    expect(bodies.map((body) => body.mass)).toEqual([3, 1, 3, 3, 3]);
+    const { targetMass, driverMass } = collageConfig.physics;
+    expect(bodies.map((body) => body.mass)).toEqual([targetMass, driverMass, targetMass, targetMass, targetMass]);
     expect(center(2).x).toBeGreaterThan(325);
     for (let i = 0; i < 40; i++) physics.tick(dt);
     expect(center(3)).toEqual({ x: 467, y: 300 });
@@ -62,13 +63,14 @@ describe('W1-05 collage physics', () => {
     physics.begin({ x: 160, y: 200 }, 0);
     physics.move({ x: 250, y: 200 }, 10);
     physics.release({ x: 250, y: 200 }, 12);
-    expect(first.velocity.x).toBeCloseTo(24);
+    const { targetMass, driverMass, maxThrowSpeed, frictionAir } = collageConfig.physics;
+    expect(first.velocity.x).toBeCloseTo(maxThrowSpeed);
     expect(physics.snapshot()[0].lift).toBe(0);
     expect(physics.tick(dt)).toBe(true);
-    expect(first.velocity.x).toBeCloseTo(24 * 0.88);
+    expect(first.velocity.x).toBeCloseTo(maxThrowSpeed * (1 - frictionAir));
     physics.begin({ x: 240, y: 450 }, 50);
     physics.move({ x: 260, y: 450 }, 60);
-    expect([first.mass, second.mass]).toEqual([3, 1]);
+    expect([first.mass, second.mass]).toEqual([targetMass, driverMass]);
     physics.tick(dt);
     physics.release({ x: 260, y: 450 }, 140);
     expect(second.speed).toBe(0);
@@ -78,9 +80,9 @@ describe('W1-05 collage physics', () => {
     physics.tick(dt);
     Body.setVelocity(second, { x: 0, y: 0 });
     for (let i = 0; i < 9; i++) physics.tick(dt);
-    expect(second.mass).toBe(1);
+    expect(second.mass).toBe(driverMass);
     physics.tick(dt);
-    expect(second.mass).toBe(3);
+    expect(second.mass).toBe(targetMass);
     expect(second.speed).toBe(0);
     expect(second.angularVelocity).toBe(0);
 

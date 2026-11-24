@@ -127,7 +127,7 @@ const SpreadLayer = memo(function SpreadLayer({ spread, paper }: { spread: Sprea
         style="stroke"
         strokeWidth={1}
       />
-      {/* 중앙 접힘 음영 */}
+      {/* 중앙 접힘 음영·선 (1페이지 모드에서도 펼쳐진 반대쪽 페이지가 느껴지도록 표시) */}
       <Rect x={spread.cx - creaseWidth / 2} y={top} width={creaseWidth} height={spread.height}>
         <LinearGradient
           start={vec(spread.cx - creaseWidth / 2, top)}
@@ -141,7 +141,6 @@ const SpreadLayer = memo(function SpreadLayer({ spread, paper }: { spread: Sprea
           positions={[0, 0.48, 0.56, 1]}
         />
       </Rect>
-      {/* 접힘 중앙선 */}
       <Path
         path={`M ${spread.cx} ${top} L ${spread.cx} ${top + spread.height}`}
         color={withAlpha(collageConfig.palette.shadow, 0.14)}
@@ -271,9 +270,9 @@ const PageMarkersLayer = memo(function PageMarkersLayer({ spread }: { spread: Sp
       <Rect x={right} y={top + spread.height * 0.72} width={8} height={28} color="#d8d5ce" />
       <Rect x={right} y={top + spread.height * 0.72} width={2.5} height={28} color="#c4622d" />
       <Rect x={right} y={top + spread.height * 0.82} width={8} height={28} color="#d8d5ce" />
-      {/* 좌측 상단 가는 금속 북마크 클립 */}
+      {/* 북마크 클립 (2페이지는 좌측 상단, 1페이지 뷰포트는 접힘선 우측 상단) */}
       <RoundedRect
-        x={left + 28}
+        x={(spread.pages === 1 ? spread.cx : left) + 28}
         y={top - 6}
         width={12}
         height={24}
