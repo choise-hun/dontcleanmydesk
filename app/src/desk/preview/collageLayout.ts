@@ -84,6 +84,22 @@ export const collageConfig = {
   maxOcclusion: 0.7,
   maxRetries: 10,
   occlusionSamples: 12,
+  physics: {
+    tickMs: 1000 / 60,
+    frictionAir: 0.12,
+    restitution: 0.05,
+    driverMass: 1,
+    targetMass: 3,
+    dragThreshold: 8,
+    sampleWindowMs: 80,
+    maxThrowSpeed: 24,
+    maxDragStep: 8,
+    wallMargin: 0.15,
+    stopSpeed: 0.05,
+    stopTicks: 10,
+    maxCatchupTicks: 4,
+  },
+  lift: { scale: 0.06, shadowX: 4, shadowY: 8, blur: 5 },
 } as const;
 
 export const SKIN_BY_TYPE: Record<ItemType, SkinKind> = {
