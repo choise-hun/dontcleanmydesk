@@ -41,7 +41,7 @@
     "ios": "expo start --ios",
     "export:web": "expo export --platform web",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run src && node --test test/design_rules.test.js test/guardrail_checklist.test.js",
     "postinstall": "setup-skia-web public",
     "lint": "expo lint"
   },
