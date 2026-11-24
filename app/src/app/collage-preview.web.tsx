@@ -57,7 +57,9 @@ export default function CollagePreviewScreen() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const genRef = useRef(0);
 
-  const [size, setSize] = useState<CanvasSize | null>(null);
+  const [viewport, setViewport] = useState<{ size: CanvasSize; seedSize: CanvasSize; fixture: FixtureMode } | null>(null);
+  const size = viewport?.size;
+  const seedSize = viewport?.fixture === fixtureMode ? viewport.seedSize : null;
   const [SceneComp, setSceneComp] = useState<SceneComponent | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [listOpen, setListOpen] = useState(false);
@@ -85,7 +87,11 @@ export default function CollagePreviewScreen() {
       const w = Math.round(rect.width);
       const h = Math.round(rect.height);
       if (w > 0 && h > 0) {
-        setSize((prev) => (prev && prev.width === w && prev.height === h ? prev : { width: w, height: h }));
+        setViewport((prev) => {
+          if (prev?.fixture === fixtureMode && prev.size.width === w && prev.size.height === h) return prev;
+          const next = { width: w, height: h };
+          return { size: next, seedSize: prev?.fixture === fixtureMode ? prev.seedSize : next, fixture: fixtureMode };
+        });
       }
     };
     update();
@@ -96,7 +102,7 @@ export default function CollagePreviewScreen() {
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [fixtureMode]);
 
   // CanvasKit WASM + CollageScene 지연 로딩 (세대 번호로 stale 응답 차단)
   useEffect(() => {
@@ -123,14 +129,14 @@ export default function CollagePreviewScreen() {
 
   // 배치 계산 (실패 시 error 상태 전환)
   const layoutResult = useMemo<{ poses: readonly PiecePose[] | null; failed: boolean }>(() => {
-    if (!size) return { poses: null, failed: false };
+    if (!seedSize) return { poses: null, failed: false };
     try {
-      const poses = placePieces(size, pieces, collageConfig.seed);
+      const poses = placePieces(seedSize, pieces, collageConfig.seed);
       return { poses, failed: false };
     } catch {
       return { poses: null, failed: true };
     }
-  }, [size, pieces]);
+  }, [seedSize, pieces]);
 
   const effectiveState: LoadState =
     loadState === 'error' || layoutResult.failed

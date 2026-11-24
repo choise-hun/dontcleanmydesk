@@ -13,7 +13,9 @@ import {
   RoundedRect,
   vec,
 } from '@shopify/react-native-skia';
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
+import type { InteractionPose } from './collagePhysics';
+import { useCollageInteraction } from './useCollageInteraction.web';
 
 import { hexToRgba } from '@/core/random';
 import { cardDims } from '@/desk/geometry';
@@ -125,7 +127,7 @@ const SpreadLayer = memo(function SpreadLayer({ spread, paper }: { spread: Sprea
         style="stroke"
         strokeWidth={1}
       />
-      {/* 중앙 접힘 음영 */}
+      {/* 중앙 접힘 음영·선 (1페이지 모드에서도 펼쳐진 반대쪽 페이지가 느껴지도록 표시) */}
       <Rect x={spread.cx - creaseWidth / 2} y={top} width={creaseWidth} height={spread.height}>
         <LinearGradient
           start={vec(spread.cx - creaseWidth / 2, top)}
@@ -139,7 +141,6 @@ const SpreadLayer = memo(function SpreadLayer({ spread, paper }: { spread: Sprea
           positions={[0, 0.48, 0.56, 1]}
         />
       </Rect>
-      {/* 접힘 중앙선 */}
       <Path
         path={`M ${spread.cx} ${top} L ${spread.cx} ${top + spread.height}`}
         color={withAlpha(collageConfig.palette.shadow, 0.14)}
@@ -158,7 +159,7 @@ const PieceNode = memo(function PieceNode({
   unit,
 }: {
   piece: PreviewPiece;
-  pose: PiecePose;
+  pose: InteractionPose;
   spread: Spread;
   unit: number;
 }) {
@@ -172,12 +173,16 @@ const PieceNode = memo(function PieceNode({
 
   const dropColor = withAlpha(collageConfig.palette.shadow, 0.11);
   const aoColor = withAlpha(collageConfig.palette.shadow, 0.17);
+  const lift = collageConfig.lift;
 
   return (
-    <Group transform={[{ translateX: pos.x }, { translateY: pos.y }, { rotate: pose.rotation }, { scale: pose.scale }]}>
+    <Group transform={[
+      { translateX: pos.x }, { translateY: pos.y }, { rotate: pose.rotation },
+      { scale: pose.scale * (1 + pose.lift * lift.scale) },
+    ]}>
       {/* 2단 그림자 — 방향성 드롭 그림자 */}
-      <Rect x={-hw + 3} y={-hh + 6} width={w} height={h} color={dropColor}>
-        <BlurMask blur={10} style="normal" />
+      <Rect x={-hw + 3 + pose.lift * lift.shadowX} y={-hh + 6 + pose.lift * lift.shadowY} width={w} height={h} color={dropColor}>
+        <BlurMask blur={10 + pose.lift * lift.blur} style="normal" />
       </Rect>
       {/* 2단 그림자 — 접촉 AO */}
       <Rect x={-hw + 1} y={-hh + 1.5} width={w} height={h} color={aoColor}>
@@ -265,9 +270,9 @@ const PageMarkersLayer = memo(function PageMarkersLayer({ spread }: { spread: Sp
       <Rect x={right} y={top + spread.height * 0.72} width={8} height={28} color="#d8d5ce" />
       <Rect x={right} y={top + spread.height * 0.72} width={2.5} height={28} color="#c4622d" />
       <Rect x={right} y={top + spread.height * 0.82} width={8} height={28} color="#d8d5ce" />
-      {/* 좌측 상단 가는 금속 북마크 클립 */}
+      {/* 북마크 클립 (2페이지는 좌측 상단, 1페이지 뷰포트는 접힘선 우측 상단) */}
       <RoundedRect
-        x={left + 28}
+        x={(spread.pages === 1 ? spread.cx : left) + 28}
         y={top - 6}
         width={12}
         height={24}
@@ -375,47 +380,34 @@ export default function CollageScene({
   reduceMotion,
   paper = 'plain',
 }: CollageSceneProps) {
-  const [sway, setSway] = useState(0);
-
-  useEffect(() => {
-    if (reduceMotion || light === 'night') return;
-    let alive = true;
-    let rafId = 0;
-    const start = performance.now();
-    const step = (now: number) => {
-      if (!alive) return;
-      setSway(((now - start) / 1000) * 0.35);
-      rafId = requestAnimationFrame(step);
-    };
-    rafId = requestAnimationFrame(step);
-    return () => {
-      alive = false;
-      cancelAnimationFrame(rafId);
-    };
-  }, [reduceMotion, light]);
-
   const spread = useMemo(() => getSpread(size), [size]);
   const { unit } = useMemo(() => getDensity(size, pieces.length), [size, pieces.length]);
+  const { surfaceRef, poses: livePoses, sway } = useCollageInteraction(
+    size, spread, pieces, poses, reduceMotion, !reduceMotion && light !== 'night',
+  );
+  const byId = useMemo(() => new Map(pieces.map((p) => [p.id, p])), [pieces]);
 
   const ordered = useMemo(() => {
-    const byId = new Map(pieces.map((p) => [p.id, p]));
-    return [...poses]
+    return [...livePoses]
       .sort((a, b) => a.z - b.z)
       .map((pose) => ({ pose, piece: byId.get(pose.id) }))
-      .filter((entry): entry is { pose: PiecePose; piece: PreviewPiece } => Boolean(entry.piece));
-  }, [pieces, poses]);
+      .filter((entry): entry is { pose: InteractionPose; piece: PreviewPiece } => Boolean(entry.piece));
+  }, [byId, livePoses]);
 
   return (
-    <Canvas style={{ width: size.width, height: size.height }}>
-      <BackdropLayer />
-      <SpreadLayer spread={spread} paper={paper} />
-      <Group>
-        {ordered.map(({ pose, piece }) => (
-          <PieceNode key={piece.id} piece={piece} pose={pose} spread={spread} unit={unit} />
-        ))}
-      </Group>
-      <PageMarkersLayer spread={spread} />
-      <AtmosphereLayers size={size} light={light} sway={sway} />
-    </Canvas>
+    <div ref={surfaceRef} data-collage-surface aria-hidden="true"
+      style={{ width: '100%', height: '100%', overflow: 'hidden', touchAction: 'none', userSelect: 'none' }}>
+      <Canvas style={size}>
+        <BackdropLayer />
+        <SpreadLayer spread={spread} paper={paper} />
+        <Group>
+          {ordered.map(({ pose, piece }) => (
+            <PieceNode key={piece.id} piece={piece} pose={pose} spread={spread} unit={unit} />
+          ))}
+        </Group>
+        <PageMarkersLayer spread={spread} />
+        <AtmosphereLayers size={size} light={light} sway={sway} />
+      </Canvas>
+    </div>
   );
 }
